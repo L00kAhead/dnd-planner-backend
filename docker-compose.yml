@@ -1,0 +1,19 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"  
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+
+  db:
+    image: nouchka/sqlite3 
+    volumes:
+      - db_data:/data/db
+
+volumes:
+  db_data:
