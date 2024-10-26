@@ -1,10 +1,10 @@
-# Use the official Python image from the Docker Hub
+# Use the official Python image as a base
 FROM python:3.10
 
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy the requirements.txt file first
+# Copy the requirements.txt file first for caching
 COPY requirements.txt .
 
 # Install the dependencies
