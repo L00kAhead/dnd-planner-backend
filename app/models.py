@@ -6,9 +6,9 @@ import datetime
 import enum
 
 class InviteStatus(enum.Enum):
-    PENDING = 'pending'
-    ACCEPTED = 'accepted'
-    DECLINED = 'declined'
+    PENDING = 'PENDING'  
+    ACCEPTED = 'ACCEPTED'
+    DECLINED = 'DECLINED'
 
 party_attendees = Table(
     'party_attendees',

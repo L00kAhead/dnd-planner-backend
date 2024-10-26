@@ -6,7 +6,7 @@ from typing import List
 from app.database import engine
 from datetime import timedelta
 from app.email_service import EmailService
-from app.models import party_invites, party_attendees
+from app.models import InviteStatus, party_invites, party_attendees
 from app.database import get_db  
 
 models.Base.metadata.create_all(bind=engine)
@@ -105,46 +105,55 @@ def respond_to_invite(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    party = db.query(models.Party).filter(models.Party.id == party_id).first()
-    if not party:
-        raise HTTPException(status_code=404, detail="Party not found")
-    
-    invite = db.execute(
-        party_invites.select()
-        .where(party_invites.c.user_id == current_user.id)
-        .where(party_invites.c.party_id == party_id)
-    ).first()
-    
-    if not invite:
-        raise HTTPException(status_code=404, detail="Invite not found")
-    
-    status = 'accepted' if accept else 'declined'
-    db.execute(
-        party_invites.update()
-        .where(party_invites.c.user_id == current_user.id)
-        .where(party_invites.c.party_id == party_id)
-        .values(status=status)
-    )
-    
-    if accept:
+    try:
+        # Retrieve the party
+        party = db.query(models.Party).filter(models.Party.id == party_id).first()
+        if not party:
+            raise HTTPException(status_code=404, detail="Party not found")
+        
+        # Check for an invite
+        invite = db.execute(
+            party_invites.select()
+            .where(party_invites.c.user_id == current_user.id)
+            .where(party_invites.c.party_id == party_id)
+        ).first()
+        
+        if not invite:
+            raise HTTPException(status_code=404, detail="Invite not found")
+        
+        # Update the invite status
+        status = InviteStatus.ACCEPTED if accept else InviteStatus.DECLINED
         db.execute(
-            party_attendees.insert().values(
-                user_id=current_user.id,
-                party_id=party_id
-            )
+            party_invites.update()
+            .where(party_invites.c.user_id == current_user.id)
+            .where(party_invites.c.party_id == party_id)
+            .values(status=status)
         )
+        
+        # Add user to attendees if accepted
+        if accept:
+            db.execute(
+                party_attendees.insert().values(
+                    user_id=current_user.id,
+                    party_id=party_id
+                )
+            )
+        
+        # Notify the party creator
+        background_tasks.add_task(
+            email_service.send_email,
+            party.creator.email,
+            f"Response to Party Invitation",
+            f"{current_user.username} has {status.name} your party invitation!"
+        )
+        
+        db.commit()  # Commit only once at the end
+        return {"message": f"Successfully {status.name} invitation"}
     
-    # Notify party creator
-    background_tasks.add_task(
-        email_service.send_email,
-        party.creator.email,
-        f"Response to Party Invitation",
-        f"{current_user.username} has {status} your party invitation!"
-    )
+    except Exception as e:
+        db.rollback()  # Rollback if any error occurs
+        raise HTTPException(status_code=500, detail=str(e))
     
-    db.commit()
-    return {"message": f"Successfully {status} invitation"}
-
 @app.put("/parties/{party_id}")
 def update_party(
     party_id: int,
@@ -158,6 +167,7 @@ def update_party(
     
     old_date_time = party.date_time
     
+    # only update the changed fields
     for field, value in party_update.dict(exclude_unset=True).items():
         setattr(party, field, value)
     
@@ -169,6 +179,35 @@ def update_party(
     db.commit()
     db.refresh(party)
     return party
+
+
+@app.delete("/parties/{party_id}")
+def delete_party(
+    party_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    # Retrieve the party
+    party = db.query(models.Party).filter(models.Party.id == party_id).first()
+    if not party or party.creator_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Party not found or unauthorized")
+    
+    # Delete associated invites
+    db.execute(
+        party_invites.delete().where(party_invites.c.party_id == party_id)
+    )
+    
+    # Delete associated attendees
+    db.execute(
+        party_attendees.delete().where(party_attendees.c.party_id == party_id)
+    )
+    
+    # Delete the party
+    db.delete(party)
+    db.commit()  # Commit the changes
+
+    return {"message": "Party deleted successfully"}
+
 
 @app.delete("/parties/{party_id}/attendees/{user_id}")
 def remove_attendee(
