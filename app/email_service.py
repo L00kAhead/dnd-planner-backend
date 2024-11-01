@@ -2,11 +2,15 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from a .env file
+load_dotenv()
 
 class EmailService:
     def __init__(self):
-        self.sender_email = ""  # Your Gmail address
-        self.password = ""   # Your App Password
+        self.sender_email = os.getenv("EMAIL_USER")  # Your Gmail address
+        self.password = os.getenv("EMAIL_PASSWORD") # Your App Password
 
     def send_email(self, recipient_email: str, subject: str, body: str):
         message = MIMEMultipart()
@@ -24,4 +28,5 @@ class EmailService:
 # Example usage
 # if __name__ == "__main__":
 #     email_service = EmailService()
-#     email_service.send_email("lorexo2907@evasud.com", "Test Subject", "Test Body")
+    # print(email_service.sender_email, email_service.password)
+    # email_service.send_email("lorexo2907@evasud.com", "Test Subject", "Test Body")
