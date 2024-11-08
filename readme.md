@@ -20,3 +20,35 @@
 - **База данных**: SQLite (с использованием SQLAlchemy)
 - **Сервис электронной почты**: Gmail SMTP
 - **Контейнеризация**: Docker
+
+## Необходимые компоненты
+
+- **Docker**: убедитесь, что Docker установлен на вашем компьютере. Загрузить Docker
+- **Python 3.10+**: требуется, если запускать приложение без Docker.
+
+
+## Установка
+
+1. **Клонируйте репозиторий:**:
+   ```bash
+   git clone https://github.com/L00kAhead/dnd-planner-backend
+   cd dnd-planner-backend
+   ```
+
+2. **Чтобы запустить приложение с помощью Docker**:
+   ```bash
+   docker-compose up
+   docker-compose up -d # deattached mode
+   ```
+   - **Установите зависимости (если не используете Docker)**:
+       ```bash
+       python3 -m venv venv
+       source /venv/bin/activate
+       pip install -r requirements.txt
+       uvicorn app.main:app --reload
+       ```
+
+## Доступ к API Swagger Docs:
+  ```bash
+  http://localhost:8000/docs
+  ```
