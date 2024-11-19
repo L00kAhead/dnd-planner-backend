@@ -142,28 +142,28 @@ def update_party(
 def delete_party(
     party_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(auth.get_current_user),
 ):
-    # Retrieve the party
-    party = db.query(models.Party).filter(models.Party.id == party_id).first()
-    if not party or party.creator_id != current_user.id:
-        raise HTTPException(status_code=404, detail="Party not found or unauthorized")
-    
-    # Delete associated invites
-    db.execute(
-        party_invites.delete().where(party_invites.c.party_id == party_id)
-    )
-    
-    # Delete associated attendees
-    db.execute(
-        party_attendees.delete().where(party_attendees.c.party_id == party_id)
-    )
-    
-    # Delete the party
-    db.delete(party)
-    db.commit()  # Commit the changes
+    """
+    Delete a party and all related data.
 
-    return {"message": "Party deleted successfully"}
+    This includes:
+    - Removing all invites and attendees for the party.
+    """
+    party = db.query(models.Party).filter(models.Party.id == party_id, models.Party.creator_id == current_user.id).first()
+    if not party:
+        raise HTTPException(status_code=404, detail="Party not found or unauthorized")
+
+    # Delete related data
+    db.execute(party_invites.delete().where(party_invites.c.party_id == party_id))
+    db.execute(party_attendees.delete().where(party_attendees.c.party_id == party_id))
+    db.delete(party)
+
+    try:
+        db.commit()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    return {"message": "Party and all related data deleted successfully"}
 
 
 @router.get("/", response_model=List[schemas.Party])
