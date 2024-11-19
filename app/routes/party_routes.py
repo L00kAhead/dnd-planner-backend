@@ -35,7 +35,7 @@ def create_party(
                 party_invites.insert().values(
                     user_id=invited_user.id,
                     party_id=db_party.id,
-                    status='pending'
+                    status=InviteStatus.PENDING
                 )
             )
             background_tasks.add_task(
@@ -190,7 +190,7 @@ def request_to_join(
         party_invites.insert().values(
             user_id=current_user.id,
             party_id=party_id,
-            status='pending'
+            status=InviteStatus.PENDING
         )
     )
 

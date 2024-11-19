@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    environment:
+      - ADMIN=admin@example.com
+      - ADMIN_PASSWORD=securepassword
     ports:
       - "8000:8000"  
     depends_on:
