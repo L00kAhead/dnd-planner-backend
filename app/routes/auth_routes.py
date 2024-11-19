@@ -8,6 +8,19 @@ router = APIRouter()
 
 @router.post("/signup", response_model=schemas.User)
 def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    """
+    Endpoint for user registration (signup).
+    
+    Args:
+        user (schemas.UserCreate): The user details for creating an account, including email, username, and password.
+        db (Session, optional): SQLAlchemy database session dependency.
+
+    Returns:
+        schemas.User: The newly created user object with details such as email and username.
+
+    Raises:
+        HTTPException: If the email is already registered, raises a 400 status error.
+    """
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -25,6 +38,22 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=schemas.Token)
 def login(email: str, password: str, db: Session = Depends(get_db)):
+    """
+    Endpoint for user login.
+    
+    Args:
+        email (str): The email of the user attempting to log in.
+        password (str): The password of the user attempting to log in.
+        db (Session, optional): SQLAlchemy database session dependency.
+
+    Returns:
+        dict: A dictionary containing the access token and its type.
+
+    Raises:
+        HTTPException: 
+            - If the user does not exist, raises a 401 status error.
+            - If the password is incorrect, raises a 401 status error.
+    """
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user or not auth.verify_password(password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")

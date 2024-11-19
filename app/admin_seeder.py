@@ -4,6 +4,23 @@ from app.models import User
 import os
 
 def seed_admin_user():
+    """
+    Seed an admin user in the database.
+
+    This function retrieves the admin credentials (email and password) from environment variables.
+    It checks if an admin user already exists in the database. If not, it creates one with the given
+    credentials.
+
+    Side Effects:
+        - Adds a new admin user to the database if one does not exist.
+        - Prints messages indicating the status of the operation.
+
+    Raises:
+        Exception: If a database error occurs during the operation.
+
+    Returns:
+        None
+    """
     db = SessionLocal()
     admin_email = os.getenv("ADMIN")
     admin_password = os.getenv("ADMIN_PASSWORD")

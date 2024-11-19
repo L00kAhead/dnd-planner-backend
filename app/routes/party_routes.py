@@ -18,6 +18,25 @@ def create_party(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
+    """
+    Create a new D&D party and send invites to the provided email addresses.
+
+    Args:
+        party (schemas.PartyCreate): The party creation details (title, date, location, invite_emails, etc.).
+        background_tasks (BackgroundTasks): FastAPI utility for managing asynchronous tasks like sending emails.
+        db (Session): Database session dependency.
+        current_user (models.User): The currently authenticated user.
+
+    Returns:
+        schemas.Party: The newly created party details.
+
+    Side Effects:
+        - Schedules a reminder for the party.
+        - Sends email invitations to the provided email addresses.
+
+    Raises:
+        HTTPException: If any database operation fails or email notification encounters an error.
+    """
     db_party = models.Party(**party.dict(exclude={'invite_emails'}), creator_id=current_user.id)
     db.add(db_party)
     db.commit()
@@ -56,6 +75,29 @@ def respond_to_invite(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
+    """
+    Respond to a party invitation (accept or decline).
+
+    Args:
+        party_id (int): The ID of the party for which the invite is being responded to.
+        accept (bool): True to accept the invite, False to decline.
+        background_tasks (BackgroundTasks): FastAPI utility for asynchronous email notification.
+        db (Session): Database session dependency.
+        current_user (models.User): The currently authenticated user.
+
+    Returns:
+        dict: A success message indicating the response.
+
+    Side Effects:
+        - Updates the invite status in the database.
+        - Adds the user to the list of attendees if accepted.
+        - Sends a notification to the party creator.
+
+    Raises:
+        HTTPException:
+            - 404: If the party or invite is not found.
+            - 500: If a database error occurs.
+    """
     try:
         # Retrieve the party
         party = db.query(models.Party).filter(models.Party.id == party_id).first()
@@ -115,6 +157,26 @@ def update_party(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
+    """
+    Update the details of a party.
+
+    Args:
+        party_id (int): The ID of the party to update.
+        party_update (schemas.PartyUpdate): The updated party details.
+        db (Session): Database session dependency.
+        current_user (models.User): The currently authenticated user.
+
+    Returns:
+        schemas.Party: The updated party details.
+
+    Side Effects:
+        - Reschedules the party reminder if the date or time is changed.
+
+    Raises:
+        HTTPException:
+            - 404: If the party is not found or the user is unauthorized.
+            - 500: If rescheduling the reminder fails.
+    """
     party = db.query(models.Party).filter(models.Party.id == party_id).first()
     if not party or party.creator_id != current_user.id:
         raise HTTPException(status_code=404, detail="Party not found or unauthorized")
@@ -145,10 +207,23 @@ def delete_party(
     current_user: models.User = Depends(auth.get_current_user),
 ):
     """
-    Delete a party and all related data.
+    Delete a party and all associated data (invites and attendees).
 
-    This includes:
-    - Removing all invites and attendees for the party.
+    Args:
+        party_id (int): The ID of the party to delete.
+        db (Session): Database session dependency.
+        current_user (models.User): The currently authenticated user.
+
+    Returns:
+        dict: A success message indicating that the party was deleted.
+
+    Side Effects:
+        - Removes invites and attendees associated with the party.
+
+    Raises:
+        HTTPException:
+            - 404: If the party is not found or the user is unauthorized.
+            - 500: If a database error occurs during deletion.
     """
     party = db.query(models.Party).filter(models.Party.id == party_id, models.Party.creator_id == current_user.id).first()
     if not party:
@@ -171,6 +246,16 @@ def list_parties(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
+    """
+    List all D&D parties.
+
+    Args:
+        db (Session): Database session dependency.
+        current_user (models.User): The currently authenticated user.
+
+    Returns:
+        List[schemas.Party]: A list of all parties.
+    """
     return db.query(models.Party).all()
 
 
@@ -182,6 +267,27 @@ def request_to_join(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
+    """
+    Request to join a D&D party.
+
+    Args:
+        party_id (int): The ID of the party to join.
+        background_tasks (BackgroundTasks): FastAPI utility for asynchronous email notification.
+        db (Session): Database session dependency.
+        current_user (models.User): The currently authenticated user.
+
+    Returns:
+        dict: A success message indicating that the join request was sent.
+
+    Side Effects:
+        - Adds the user to the list of pending invites.
+        - Sends a notification to the party creator.
+
+    Raises:
+        HTTPException:
+            - 404: If the party is not found.
+            - 400: If the user has already requested to join.
+    """
     party = db.query(models.Party).filter(models.Party.id == party_id).first()
     if not party:
         raise HTTPException(status_code=404, detail="Party not found")
@@ -222,6 +328,26 @@ def remove_attendee(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
+    
+    """
+    Remove an attendee from a D&D party.
+
+    Args:
+        party_id (int): The ID of the party.
+        user_id (int): The ID of the user to remove.
+        db (Session): Database session dependency.
+        current_user (models.User): The currently authenticated user.
+
+    Returns:
+        dict: A success message indicating that the attendee was removed.
+
+    Side Effects:
+        - Removes the user from the party's attendees.
+
+    Raises:
+        HTTPException:
+            - 404: If the party is not found or the user is unauthorized.
+    """
     party = db.query(models.Party).filter(models.Party.id == party_id).first()
     if not party or party.creator_id != current_user.id:
         raise HTTPException(status_code=404, detail="Party not found or unauthorized")
