@@ -52,3 +52,24 @@
   ```bash
   http://localhost:8000/docs
   ```
+
+## Таблица конечных точек
+| Конечная точка | Метод | Описание |
+| --- | --- | --- |
+| `/` | GET | Корень |
+| `/admin/users` | GET | Список пользователей |
+| `/admin/users/{user_id}` | DELETE | Удалить пользователя |
+| `/auth/signup` | POST | Регистрация |
+| `/auth/login` | POST | Вход |
+| `/user/me` | GET | Получить текущего пользователя |
+| `/user/me` | PUT | Обновить пользователя |
+| `/user/me` | DELETE | Удалить учетную запись пользователя |
+| `/user/{user_id}` | GET | Получить пользователя по идентификатору |
+| `/user/me/invites` | GET | Список приглашений пользователя |
+| `/parties/` | GET | Список вечеринок |
+| `/parties/` | POST | Создать вечеринку |
+| `/parties/{party_id}/respond-invite` | PUT | Ответить на приглашение |
+| `/parties/{party_id}` | PUT | Обновить вечеринку |
+| `/parties/{party_id}` | DELETE | Удалить вечеринку |
+| `/parties/{party_id}/join-request` | POST | Запрос на вступление |
+| `/parties/{party_id}/attendees/{user_id}` | DELETE | Удалить участника |
