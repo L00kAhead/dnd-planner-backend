@@ -34,6 +34,7 @@ class User(Base):
     hashed_password = Column(String)
     created_parties = relationship("Party", back_populates="creator")
     attending_parties = relationship("Party", secondary=party_attendees, back_populates="attendees")
+    is_admin = Column(Boolean, default=False) 
 
 class Party(Base):
     __tablename__ = "parties"
