@@ -1,3 +1,4 @@
+import enum
 from http.client import HTTPException
 from typing import List
 from fastapi import APIRouter, Depends
@@ -149,9 +150,16 @@ def list_user_invites(
         List[schemas.Invite]: A list of invites with their statuses.
     """
     invites = db.execute(
-        party_invites.select().where(party_invites.c.user_id == current_user.id)
+        party_invites.select()
+        .where(party_invites.c.user_id == current_user.id)
     ).fetchall()
+
+    # Transform invites to match the schema
     return [
-        {"party_id": invite.party_id, "status": invite.status}
+        {
+            "party_id": invite.party_id,
+            "user_id": invite.user_id,
+            "status": invite.status.value if isinstance(invite.status, enum.Enum) else invite.status
+        }
         for invite in invites
     ]

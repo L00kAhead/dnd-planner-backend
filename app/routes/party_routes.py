@@ -177,23 +177,56 @@ def update_party(
             - 404: If the party is not found or the user is unauthorized.
             - 500: If rescheduling the reminder fails.
     """
+    # party = db.query(models.Party).filter(models.Party.id == party_id).first()
+    # if not party or party.creator_id != current_user.id:
+    #     raise HTTPException(status_code=404, detail="Party not found or unauthorized")
+    
+    # old_date_time = party.date_time
+    
+    # # only update the changed fields
+    # for field, value in party_update.dict(exclude_unset=True).items():
+    #     setattr(party, field, value)
+    
+    # # If date_time was updated, reschedule the reminder
+    # if party_update.date_time and party_update.date_time != old_date_time:
+    #     try:
+    #         party_scheduler.remove_party_reminder(party_id)
+    #         party_scheduler.schedule_party_reminder(party_id, party_update.date_time)
+    #     except Exception as e:
+    #         raise HTTPException(status_code=500, detail=f"Failed to reschedule reminder: {e}")
+    
+    # db.commit()
+    # db.refresh(party)
+    # return party
+    
     party = db.query(models.Party).filter(models.Party.id == party_id).first()
     if not party or party.creator_id != current_user.id:
         raise HTTPException(status_code=404, detail="Party not found or unauthorized")
     
     old_date_time = party.date_time
+
+    # Ensure both old and new date_time are timezone-aware
+    if party_update.date_time:
+        new_date_time = party_update.date_time
+        if old_date_time.tzinfo is None:
+            old_date_time = old_date_time.replace(tzinfo=new_date_time.tzinfo)
     
-    # only update the changed fields
+        if new_date_time.tzinfo is None:
+            new_date_time = new_date_time.replace(tzinfo=old_date_time.tzinfo)
+
+        # Update and reschedule if date_time has changed
+        if new_date_time != old_date_time:
+            try:
+                party_scheduler.remove_party_reminder(party_id)
+                party_scheduler.schedule_party_reminder(party_id, new_date_time)
+                party.date_time = new_date_time
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to reschedule reminder: {e}")
+
+    # Update other fields
     for field, value in party_update.dict(exclude_unset=True).items():
-        setattr(party, field, value)
-    
-    # If date_time was updated, reschedule the reminder
-    if party_update.date_time and party_update.date_time != old_date_time:
-        try:
-            party_scheduler.remove_party_reminder(party_id)
-            party_scheduler.schedule_party_reminder(party_id, party_update.date_time)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to reschedule reminder: {e}")
+        if field != "date_time":
+            setattr(party, field, value)
     
     db.commit()
     db.refresh(party)

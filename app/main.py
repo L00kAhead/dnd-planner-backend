@@ -7,8 +7,8 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-@app.route("/")
-def welcome():
+@app.get("/")
+async def root():
     return {"message": "Please visit localhost:8000/docs to view the Swagger docs."}
 
 app.include_router(admin_routes.router, prefix="/admin", tags=["Admin"])
