@@ -2,6 +2,10 @@ from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 from datetime import datetime
 
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+    
 class UserBase(BaseModel):
     """
     Base schema for user-related data.
