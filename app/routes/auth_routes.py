@@ -37,7 +37,7 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return db_user
 
 @router.post("/login", response_model=schemas.Token)
-def login(email: str, password: str, db: Session = Depends(get_db)):
+def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
     """
     Endpoint for user login.
     
@@ -54,8 +54,8 @@ def login(email: str, password: str, db: Session = Depends(get_db)):
             - If the user does not exist, raises a 401 status error.
             - If the password is incorrect, raises a 401 status error.
     """
-    user = db.query(models.User).filter(models.User.email == email).first()
-    if not user or not auth.verify_password(password, user.hashed_password):
+    user = db.query(models.User).filter(models.User.email == request.email).first()
+    if not user or not auth.verify_password(request.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     access_token = auth.create_access_token(

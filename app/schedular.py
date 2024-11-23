@@ -45,7 +45,8 @@ class PartyScheduler:
                 self._send_party_reminder,
                 trigger=DateTrigger(run_date=reminder_time),
                 args=[party_id],
-                id=f"party_reminder_{party_id}"
+                id=f"party_reminder_{party_id}",
+                replace_existing=True
             )
 
     def _send_party_reminder(self, party_id: int):
